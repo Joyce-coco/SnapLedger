@@ -1,7 +1,7 @@
 {
-  "version_code": 2,
-  "version_name": "1.1",
+  "version_code": 3,
+  "version_name": "1.2",
   "download_url": "https://github.com/Joyce-coco/SnapLedger/releases/latest/download/SnapLedger.apk",
-  "changelog": "新增支付宝账单导入、Excel/CSV批量导入、自动检测更新",
+  "changelog": "AI智能识别截图多条交易、单击编辑记录、左滑删除",
   "force_update": false
 }
