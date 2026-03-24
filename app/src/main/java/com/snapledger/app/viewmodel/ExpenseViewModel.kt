@@ -100,6 +100,10 @@ class ExpenseViewModel @Inject constructor(
         }
     }
 
+    fun updateExpense(expense: Expense) {
+        viewModelScope.launch { repository.updateExpense(expense) }
+    }
+
     fun deleteExpense(expense: Expense) {
         viewModelScope.launch { repository.deleteExpense(expense) }
     }

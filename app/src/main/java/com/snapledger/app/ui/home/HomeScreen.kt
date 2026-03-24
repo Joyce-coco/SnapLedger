@@ -1,10 +1,14 @@
 package com.snapledger.app.ui.home
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,8 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.snapledger.app.data.model.Category
@@ -22,6 +30,7 @@ import com.snapledger.app.ui.util.categoryIcon
 import com.snapledger.app.viewmodel.ExpenseViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +40,8 @@ fun HomeScreen(
     onCameraClick: () -> Unit,
     onStatsClick: () -> Unit,
     onCategoryClick: () -> Unit,
-    onImportClick: () -> Unit = {}
+    onImportClick: () -> Unit = {},
+    onEditClick: (Expense) -> Unit = {}
 ) {
     val expenses by viewModel.expenses.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -274,10 +284,11 @@ fun HomeScreen(
                         }
 
                         items(dayExpenses, key = { it.id }) { expense ->
-                            ExpenseItem(
+                            SwipeToDeleteExpenseItem(
                                 expense = expense,
                                 categories = categories,
                                 timeFormat = timeFormat,
+                                onEdit = { onEditClick(expense) },
                                 onDelete = { viewModel.deleteExpense(expense) }
                             )
                         }
@@ -290,10 +301,11 @@ fun HomeScreen(
 }
 
 @Composable
-private fun ExpenseItem(
+private fun SwipeToDeleteExpenseItem(
     expense: Expense,
     categories: List<Category>,
     timeFormat: SimpleDateFormat,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -301,13 +313,22 @@ private fun ExpenseItem(
     val iconColor = category?.let { Color(it.color) } ?: MaterialTheme.colorScheme.primaryContainer
     val isIncome = expense.type == 1
 
+    // 滑动状态
+    val deleteButtonWidthPx = with(LocalDensity.current) { 80.dp.toPx() }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    val animatedOffsetX by animateFloatAsState(targetValue = offsetX, label = "swipe")
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
             text = { Text("删除这笔 ¥%.2f 的${expense.categoryName}记录?".format(expense.amount)) },
             confirmButton = {
-                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                TextButton(onClick = {
+                    onDelete()
+                    showDeleteDialog = false
+                    offsetX = 0f
+                }) {
                     Text("删除", color = MaterialTheme.colorScheme.error)
                 }
             },
@@ -317,55 +338,113 @@ private fun ExpenseItem(
         )
     }
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        onClick = { showDeleteDialog = true }
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clipToBounds()
     ) {
-        Row(
+        // 底层：红色删除按钮（右侧）
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .matchParentSize()
+                .background(Color(0xFFEF4444)),
+            contentAlignment = Alignment.CenterEnd
         ) {
-            // 分类图标
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(iconColor.copy(alpha = 0.2f)),
+                    .width(80.dp)
+                    .fillMaxHeight()
+                    .clickable { showDeleteDialog = true },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = categoryIcon(category?.icon ?: ""),
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp),
-                    tint = iconColor
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(expense.categoryName, fontWeight = FontWeight.Medium)
-                if (expense.note.isNotBlank()) {
-                    Text(expense.note, style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text("删除", color = Color.White, style = MaterialTheme.typography.bodySmall)
                 }
             }
+        }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    if (isIncome) "+¥%.2f".format(expense.amount) else "-¥%.2f".format(expense.amount),
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isIncome) Color(0xFF10B981) else MaterialTheme.colorScheme.error
-                )
-                Text(
-                    timeFormat.format(Date(expense.timestamp)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
+        // 上层：可滑动的卡片内容
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(animatedOffsetX.roundToInt(), 0) }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            // 滑过一半则吸附到展开位置，否则回弹
+                            offsetX = if (offsetX < -deleteButtonWidthPx / 2) -deleteButtonWidthPx else 0f
+                        },
+                        onHorizontalDrag = { _, dragAmount ->
+                            val newOffset = offsetX + dragAmount
+                            // 只允许左滑（负方向），最多滑出删除按钮宽度
+                            offsetX = newOffset.coerceIn(-deleteButtonWidthPx, 0f)
+                        }
+                    )
+                },
+            onClick = {
+                if (offsetX < 0f) {
+                    // 已展开删除按钮时，点击回弹
+                    offsetX = 0f
+                } else {
+                    onEdit()
+                }
+            }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(iconColor.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = categoryIcon(category?.icon ?: ""),
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = iconColor
+                    )
+                }
+
+                Spacer(Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(expense.categoryName, fontWeight = FontWeight.Medium)
+                    if (expense.note.isNotBlank()) {
+                        Text(
+                            expense.note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        if (isIncome) "+¥%.2f".format(expense.amount) else "-¥%.2f".format(expense.amount),
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isIncome) Color(0xFF10B981) else MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        timeFormat.format(Date(expense.timestamp)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
             }
         }
     }

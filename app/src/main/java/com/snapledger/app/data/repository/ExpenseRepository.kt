@@ -26,6 +26,7 @@ class ExpenseRepository @Inject constructor(
     fun getTotalExpenseByLedger(ledgerId: Long, start: Long, end: Long) = expenseDao.getTotalExpenseByLedger(ledgerId, start, end)
     suspend fun insertExpense(expense: Expense) = expenseDao.insert(expense)
     suspend fun insertAllExpenses(expenses: List<Expense>) = expenseDao.insertAll(expenses)
+    suspend fun updateExpense(expense: Expense) = expenseDao.update(expense)
     suspend fun deleteExpense(expense: Expense) = expenseDao.delete(expense)
 
     // Category

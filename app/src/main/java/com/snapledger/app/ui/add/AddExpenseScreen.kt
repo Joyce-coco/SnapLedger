@@ -37,16 +37,25 @@ fun AddExpenseScreen(
     onBack: () -> Unit,
     prefilledAmount: String? = null,
     prefilledCategory: String? = null,
-    prefilledIsIncome: Boolean = false
+    prefilledIsIncome: Boolean = false,
+    editExpenseId: Long = 0,
+    editNote: String = "",
+    editTimestamp: Long = 0
 ) {
     val categories by viewModel.categories.collectAsState()
+    val isEditMode = editExpenseId > 0
+
     var amount by remember { mutableStateOf(prefilledAmount ?: "") }
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
-    var note by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf(if (isEditMode) editNote else "") }
     var isIncome by remember { mutableStateOf(prefilledIsIncome) }
 
     // 时间选择状态
-    val calendar = remember { Calendar.getInstance() }
+    val calendar = remember {
+        Calendar.getInstance().also {
+            if (editTimestamp > 0) it.timeInMillis = editTimestamp
+        }
+    }
     var selectedYear by remember { mutableIntStateOf(calendar.get(Calendar.YEAR)) }
     var selectedMonth by remember { mutableIntStateOf(calendar.get(Calendar.MONTH)) }
     var selectedDay by remember { mutableIntStateOf(calendar.get(Calendar.DAY_OF_MONTH)) }
@@ -91,7 +100,7 @@ fun AddExpenseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("记一笔") },
+                title = { Text(if (isEditMode) "编辑记录" else "记一笔") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, "返回")
@@ -264,14 +273,29 @@ fun AddExpenseScreen(
                 onClick = {
                     val amountValue = amount.toDoubleOrNull()
                     if (amountValue != null && amountValue > 0 && selectedCategory != null) {
-                        viewModel.addExpense(
-                            amount = amountValue,
-                            categoryId = selectedCategory!!.id,
-                            categoryName = selectedCategory!!.name,
-                            note = note,
-                            timestamp = selectedTimestamp,
-                            type = if (isIncome) 1 else 0
-                        )
+                        if (isEditMode) {
+                            viewModel.updateExpense(
+                                com.snapledger.app.data.model.Expense(
+                                    id = editExpenseId,
+                                    amount = amountValue,
+                                    categoryId = selectedCategory!!.id,
+                                    categoryName = selectedCategory!!.name,
+                                    note = note,
+                                    timestamp = selectedTimestamp,
+                                    ledgerId = viewModel.currentLedgerId.value,
+                                    type = if (isIncome) 1 else 0
+                                )
+                            )
+                        } else {
+                            viewModel.addExpense(
+                                amount = amountValue,
+                                categoryId = selectedCategory!!.id,
+                                categoryName = selectedCategory!!.name,
+                                note = note,
+                                timestamp = selectedTimestamp,
+                                type = if (isIncome) 1 else 0
+                            )
+                        }
                         onBack()
                     }
                 },
@@ -284,7 +308,7 @@ fun AddExpenseScreen(
             ) {
                 Icon(Icons.Default.Check, null)
                 Spacer(Modifier.width(8.dp))
-                Text("保存", fontSize = 18.sp)
+                Text(if (isEditMode) "更新" else "保存", fontSize = 18.sp)
             }
         }
     }
