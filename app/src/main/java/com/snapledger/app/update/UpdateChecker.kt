@@ -25,8 +25,7 @@ data class UpdateInfo(
 
 object UpdateChecker {
 
-    // 更新检测 URL - 部署时替换为实际地址
-    private const val UPDATE_URL = "https://raw.githubusercontent.com/snapledger/releases/main/update.json"
+    private const val UPDATE_URL = "https://raw.githubusercontent.com/Joyce-coco/SnapLedger/master/update.json"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
