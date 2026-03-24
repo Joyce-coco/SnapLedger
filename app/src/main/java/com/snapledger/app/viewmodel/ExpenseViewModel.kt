@@ -8,8 +8,11 @@ import com.snapledger.app.data.model.Category
 import com.snapledger.app.data.model.Expense
 import com.snapledger.app.data.model.Ledger
 import com.snapledger.app.data.repository.ExpenseRepository
+import com.snapledger.app.ocr.AiTransactionParser
 import com.snapledger.app.ocr.OcrProcessor
+import com.snapledger.app.ocr.ParsedTransaction
 import com.snapledger.app.ocr.ReceiptParser
+import java.util.Calendar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -22,7 +25,9 @@ data class OcrState(
     val category: String? = null,
     val rawText: String = "",
     val error: String? = null,
-    val isIncome: Boolean = false
+    val isIncome: Boolean = false,
+    val aiTransactions: List<ParsedTransaction> = emptyList(),
+    val isAiMode: Boolean = false
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -113,13 +118,25 @@ class ExpenseViewModel @Inject constructor(
             _ocrState.value = OcrState(isProcessing = true)
             try {
                 val text = OcrProcessor.recognizeFromUri(context, uri)
-                val result = ReceiptParser.parse(text)
-                _ocrState.value = OcrState(
-                    amount = result.amount,
-                    category = result.category,
-                    rawText = result.rawText,
-                    isIncome = result.isIncome
-                )
+
+                // 先尝试 AI 多条解析
+                val aiResults = AiTransactionParser.parse(text)
+                if (aiResults.isNotEmpty()) {
+                    _ocrState.value = OcrState(
+                        rawText = text,
+                        aiTransactions = aiResults,
+                        isAiMode = true
+                    )
+                } else {
+                    // AI 失败，降级到本地解析（单条）
+                    val result = ReceiptParser.parse(text)
+                    _ocrState.value = OcrState(
+                        amount = result.amount,
+                        category = result.category,
+                        rawText = result.rawText,
+                        isIncome = result.isIncome
+                    )
+                }
             } catch (e: Exception) {
                 _ocrState.value = OcrState(error = "识别失败: ${e.message}")
             }
@@ -128,6 +145,46 @@ class ExpenseViewModel @Inject constructor(
 
     fun clearOcrState() {
         _ocrState.value = OcrState()
+    }
+
+    fun saveAiTransactions(transactions: List<ParsedTransaction>) {
+        viewModelScope.launch {
+            val year = Calendar.getInstance().get(Calendar.YEAR)
+            val expenses = transactions.filter { it.selected }.map { t ->
+                val timestamp = parseAiTime(t.time, year)
+                Expense(
+                    amount = t.amount,
+                    categoryId = 0,
+                    categoryName = t.category,
+                    note = t.note,
+                    timestamp = timestamp,
+                    ledgerId = _currentLedgerId.value,
+                    type = if (t.type == "收入") 1 else 0
+                )
+            }
+            repository.insertAllExpenses(expenses)
+            _ocrState.value = OcrState()
+        }
+    }
+
+    private fun parseAiTime(timeStr: String, year: Int): Long {
+        if (timeStr.isBlank()) return System.currentTimeMillis()
+        try {
+            // 格式: "MM-dd HH:mm"
+            val parts = timeStr.split(" ")
+            val dateParts = parts[0].split("-")
+            val month = dateParts[0].toInt() - 1
+            val day = dateParts[1].toInt()
+            val timeParts = if (parts.size > 1) parts[1].split(":") else listOf("0", "0")
+            val hour = timeParts[0].toInt()
+            val minute = timeParts[1].toInt()
+            val cal = Calendar.getInstance()
+            cal.set(year, month, day, hour, minute, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            return cal.timeInMillis
+        } catch (_: Exception) {
+            return System.currentTimeMillis()
+        }
     }
 
     // 批量导入
