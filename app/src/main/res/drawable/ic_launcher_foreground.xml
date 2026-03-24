@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 卡通相机机身（圆角矩形） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,40 L80,40 Q84,40 84,44 L84,72 Q84,76 80,76 L28,76 Q24,76 24,72 L24,44 Q24,40 28,40 Z"/>
+
+    <!-- 相机顶部凸起（取景器） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,40 L42,34 Q42,32 44,32 L64,32 Q66,32 66,34 L66,40 Z"/>
+
+    <!-- 相机闪光灯小圆点 -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M36,35 m-2.5,0 a2.5,2.5 0 1,1 5,0 a2.5,2.5 0 1,1 -5,0"/>
+
+    <!-- 镜头外圈 -->
+    <path
+        android:fillColor="#FF6B9D"
+        android:pathData="M54,58 m-14,0 a14,14 0 1,1 28,0 a14,14 0 1,1 -28,0"/>
+
+    <!-- 镜头内圈 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,58 m-10,0 a10,10 0 1,1 20,0 a10,10 0 1,1 -20,0"/>
+
+    <!-- 镜头最内圈 -->
+    <path
+        android:fillColor="#FF8FB8"
+        android:pathData="M54,58 m-6,0 a6,6 0 1,1 12,0 a6,6 0 1,1 -12,0"/>
+
+    <!-- 人民币符号 ¥ -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M49,52 L54,58 L59,52 M49.5,57 L58.5,57 M49.5,60 L58.5,60 M54,56 L54,66"/>
+
+    <!-- 相机可爱的眼睛（左） -->
+    <path
+        android:fillColor="#FF6B9D"
+        android:pathData="M32,46 m-1.5,0 a1.5,1.5 0 1,1 3,0 a1.5,1.5 0 1,1 -3,0"/>
+
+    <!-- 相机可爱的眼睛（右） -->
+    <path
+        android:fillColor="#FF6B9D"
+        android:pathData="M76,46 m-1.5,0 a1.5,1.5 0 1,1 3,0 a1.5,1.5 0 1,1 -3,0"/>
+</vector>
