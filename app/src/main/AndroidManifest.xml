@@ -10,6 +10,7 @@
     <application
         android:name=".SnapLedgerApp"
         android:allowBackup="true"
+        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher"
         android:label="拍照记账"
         android:supportsRtl="true"

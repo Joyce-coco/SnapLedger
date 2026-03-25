@@ -1,6 +1,8 @@
 package com.snapledger.app.ocr
 
 import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.snapledger.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -24,15 +26,16 @@ object AiTransactionParser {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(90, TimeUnit.SECONDS)
         .build()
 
     private val gson = Gson()
 
-    private const val API_URL = "https://api.anthropic.com/v1/messages"
+    // 使用代理 API 地址
+    private const val API_URL = "http://model.mify.ai.srv/anthropic/v1/messages"
+    private const val MODEL = "ppio/pa/claude-opus-4-6"
 
-    private val SYSTEM_PROMPT = """
-你是一个账单识别助手。用户会给你一段从手机截图OCR识别出的文字，可能包含多条交易记录。
+    private const val SYSTEM_PROMPT = """你是一个账单识别助手。用户会给你一段从手机截图OCR识别出的文字，可能包含多条交易记录。
 
 请从中提取所有交易记录，返回JSON数组。每条记录包含：
 - amount: 金额（数字，不带符号）
@@ -48,10 +51,14 @@ object AiTransactionParser {
 4. 金额为0的跳过
 5. note要简洁有意义，去掉订单号
 
-只返回JSON数组，不要其他文字。如果无法识别任何交易，返回空数组 []
-""".trimIndent()
+只返回JSON数组，不要其他文字。如果无法识别任何交易，返回空数组 []"""
+
+    // 最近一次的错误信息，用于调试
+    var lastError: String? = null
+        private set
 
     suspend fun parse(ocrText: String): List<ParsedTransaction> = withContext(Dispatchers.IO) {
+        lastError = null
         try {
             val requestBody = buildRequestJson(ocrText)
             val request = Request.Builder()
@@ -63,64 +70,73 @@ object AiTransactionParser {
                 .build()
 
             val response = client.newCall(request).execute()
+            val body = response.body?.string() ?: ""
+
             if (!response.isSuccessful) {
+                lastError = "API错误 ${response.code}: $body"
                 return@withContext emptyList()
             }
 
-            val body = response.body?.string() ?: return@withContext emptyList()
-            extractTransactions(body)
-        } catch (_: Exception) {
+            val result = extractTransactions(body)
+            if (result.isEmpty()) {
+                lastError = "AI返回为空，原始响应: ${body.take(500)}"
+            }
+            result
+        } catch (e: Exception) {
+            lastError = "请求失败: ${e.javaClass.simpleName} - ${e.message}"
             emptyList()
         }
     }
 
+    /** 用 Gson 构建安全的 JSON 请求体 */
     private fun buildRequestJson(ocrText: String): String {
-        val escapedText = ocrText.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
-        val escapedSystem = SYSTEM_PROMPT.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
-        return """
-        {
-            "model": "claude-haiku-4-5-20251001",
-            "max_tokens": 2048,
-            "system": "$escapedSystem",
-            "messages": [
-                {"role": "user", "content": "请从以下OCR文字中提取所有交易记录：\n\n$escapedText"}
-            ]
+        val userMessage = JsonObject().apply {
+            addProperty("role", "user")
+            addProperty("content", "请从以下OCR文字中提取所有交易记录：\n\n$ocrText")
         }
-        """.trimIndent()
+
+        val messages = JsonArray().apply {
+            add(userMessage)
+        }
+
+        val requestJson = JsonObject().apply {
+            addProperty("model", MODEL)
+            addProperty("max_tokens", 4096)
+            addProperty("system", SYSTEM_PROMPT)
+            add("messages", messages)
+        }
+
+        return gson.toJson(requestJson)
     }
 
     private fun extractTransactions(responseBody: String): List<ParsedTransaction> {
         try {
-            // 从 Claude API 响应中提取 content text
             val responseMap = gson.fromJson(responseBody, Map::class.java)
-            val content = responseMap["content"] as? List<*> ?: return emptyList()
+            val content = responseMap["content"] as? List<*> ?: run {
+                lastError = "响应缺少content字段: ${responseBody.take(300)}"
+                return emptyList()
+            }
             val firstBlock = content.firstOrNull() as? Map<*, *> ?: return emptyList()
             val text = firstBlock["text"] as? String ?: return emptyList()
 
-            // 提取 JSON 数组（可能被包在 markdown code block 里）
             val jsonStr = extractJsonArray(text)
-
             val listType = object : TypeToken<List<ParsedTransaction>>() {}.type
             val transactions: List<ParsedTransaction> = gson.fromJson(jsonStr, listType)
             return transactions.filter { it.amount > 0 }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            lastError = "解析响应失败: ${e.message}"
             return emptyList()
         }
     }
 
     private fun extractJsonArray(text: String): String {
-        // 尝试找到 JSON 数组
         val trimmed = text.trim()
-
-        // 如果直接就是 JSON 数组
         if (trimmed.startsWith("[")) return trimmed
 
-        // 从 markdown code block 中提取
         val codeBlockRegex = Regex("""```(?:json)?\s*\n?([\s\S]*?)\n?```""")
         val match = codeBlockRegex.find(trimmed)
         if (match != null) return match.groupValues[1].trim()
 
-        // 找第一个 [ 到最后一个 ]
         val start = trimmed.indexOf('[')
         val end = trimmed.lastIndexOf(']')
         if (start >= 0 && end > start) return trimmed.substring(start, end + 1)

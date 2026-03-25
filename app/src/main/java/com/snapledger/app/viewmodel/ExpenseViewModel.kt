@@ -128,13 +128,15 @@ class ExpenseViewModel @Inject constructor(
                         isAiMode = true
                     )
                 } else {
-                    // AI 失败，降级到本地解析（单条）
+                    // AI 失败，显示错误信息 + 降级到本地解析
+                    val aiError = AiTransactionParser.lastError
                     val result = ReceiptParser.parse(text)
                     _ocrState.value = OcrState(
                         amount = result.amount,
                         category = result.category,
-                        rawText = result.rawText,
-                        isIncome = result.isIncome
+                        rawText = text,
+                        isIncome = result.isIncome,
+                        error = if (result.amount == null && aiError != null) "AI识别失败: $aiError" else null
                     )
                 }
             } catch (e: Exception) {
