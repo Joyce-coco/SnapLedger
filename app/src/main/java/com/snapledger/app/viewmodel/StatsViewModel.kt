@@ -14,7 +14,7 @@ import java.util.*
 import javax.inject.Inject
 
 enum class TimePeriod(val label: String) {
-    WEEK("本周"), MONTH("本月")
+    WEEK("本周"), MONTH("本月"), CUSTOM("自定义")
 }
 
 data class BudgetStatus(
@@ -34,10 +34,15 @@ class StatsViewModel @Inject constructor(
     private val _period = MutableStateFlow(TimePeriod.MONTH)
     val period = _period.asStateFlow()
 
-    // 当前账本ID（默认1）
     private val _currentLedgerId = MutableStateFlow(1L)
 
-    private val timeRange: Flow<Pair<Long, Long>> = _period.map { p ->
+    // 自定义时间范围
+    private val _customStart = MutableStateFlow(0L)
+    val customStart = _customStart.asStateFlow()
+    private val _customEnd = MutableStateFlow(0L)
+    val customEnd = _customEnd.asStateFlow()
+
+    private val timeRange: Flow<Pair<Long, Long>> = combine(_period, _customStart, _customEnd) { p, cs, ce ->
         val cal = Calendar.getInstance()
         val end = cal.timeInMillis
         when (p) {
@@ -47,6 +52,7 @@ class StatsViewModel @Inject constructor(
                 cal.set(Calendar.MINUTE, 0)
                 cal.set(Calendar.SECOND, 0)
                 cal.set(Calendar.MILLISECOND, 0)
+                cal.timeInMillis to end
             }
             TimePeriod.MONTH -> {
                 cal.set(Calendar.DAY_OF_MONTH, 1)
@@ -54,9 +60,12 @@ class StatsViewModel @Inject constructor(
                 cal.set(Calendar.MINUTE, 0)
                 cal.set(Calendar.SECOND, 0)
                 cal.set(Calendar.MILLISECOND, 0)
+                cal.timeInMillis to end
+            }
+            TimePeriod.CUSTOM -> {
+                if (cs > 0 && ce > 0) cs to ce else 0L to end
             }
         }
-        cal.timeInMillis to end
     }
 
     val expenses: StateFlow<List<Expense>> = timeRange.flatMapLatest { (start, end) ->
@@ -91,6 +100,18 @@ class StatsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetStatus())
 
     fun setPeriod(p: TimePeriod) { _period.value = p }
+
+    fun setCustomRange(startMillis: Long, endMillis: Long) {
+        _customStart.value = startMillis
+        // 结束日期设为当天 23:59:59
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = endMillis
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        _customEnd.value = cal.timeInMillis
+        _period.value = TimePeriod.CUSTOM
+    }
 
     fun setLedgerId(id: Long) { _currentLedgerId.value = id }
 

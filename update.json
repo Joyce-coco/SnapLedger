@@ -1,7 +1,7 @@
 {
-  "version_code": 5,
-  "version_name": "1.4",
+  "version_code": 6,
+  "version_name": "1.5",
   "download_url": "https://github.com/Joyce-coco/SnapLedger/releases/latest/download/SnapLedger.apk",
-  "changelog": "AI直接看图识别账单，不再依赖OCR文字，准确率大幅提升",
+  "changelog": "统计页新增扇形图分类占比+自定义时间范围查询",
   "force_update": false
 }

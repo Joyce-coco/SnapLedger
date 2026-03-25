@@ -14,8 +14,8 @@ android {
         applicationId = "com.snapledger.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.5"
 
         buildConfigField("String", "CLAUDE_API_KEY", "\"sk-ljqXD2OuMfXLAbXb2p7uCT7q9ipqShD9YJBJ68y2J8MHnDZF\"")
     }
