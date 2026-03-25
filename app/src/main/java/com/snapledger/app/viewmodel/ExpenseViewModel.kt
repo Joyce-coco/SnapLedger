@@ -117,28 +117,38 @@ class ExpenseViewModel @Inject constructor(
         viewModelScope.launch {
             _ocrState.value = OcrState(isProcessing = true)
             try {
-                val text = OcrProcessor.recognizeFromUri(context, uri)
-
-                // 先尝试 AI 多条解析
-                val aiResults = AiTransactionParser.parse(text)
+                // 直接发图片给 Claude Vision API（最准确）
+                val aiResults = AiTransactionParser.parseImage(context, uri)
                 if (aiResults.isNotEmpty()) {
                     _ocrState.value = OcrState(
-                        rawText = text,
                         aiTransactions = aiResults,
                         isAiMode = true
                     )
-                } else {
-                    // AI 失败，显示错误信息 + 降级到本地解析
-                    val aiError = AiTransactionParser.lastError
-                    val result = ReceiptParser.parse(text)
-                    _ocrState.value = OcrState(
-                        amount = result.amount,
-                        category = result.category,
-                        rawText = text,
-                        isIncome = result.isIncome,
-                        error = if (result.amount == null && aiError != null) "AI识别失败: $aiError" else null
-                    )
+                    return@launch
                 }
+
+                // AI Vision 失败，降级到 OCR + AI 文本解析
+                val text = OcrProcessor.recognizeFromUri(context, uri)
+                val textResults = AiTransactionParser.parseText(text)
+                if (textResults.isNotEmpty()) {
+                    _ocrState.value = OcrState(
+                        rawText = text,
+                        aiTransactions = textResults,
+                        isAiMode = true
+                    )
+                    return@launch
+                }
+
+                // 全部失败，降级到本地单条解析
+                val aiError = AiTransactionParser.lastError
+                val result = ReceiptParser.parse(text)
+                _ocrState.value = OcrState(
+                    amount = result.amount,
+                    category = result.category,
+                    rawText = text,
+                    isIncome = result.isIncome,
+                    error = if (result.amount == null) "AI识别失败: $aiError" else null
+                )
             } catch (e: Exception) {
                 _ocrState.value = OcrState(error = "识别失败: ${e.message}")
             }
