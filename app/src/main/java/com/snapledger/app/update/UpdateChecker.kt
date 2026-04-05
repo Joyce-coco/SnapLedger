@@ -25,7 +25,7 @@ data class UpdateInfo(
 
 object UpdateChecker {
 
-    private const val UPDATE_URL = "https://raw.githubusercontent.com/Joyce-coco/SnapLedger/master/update.json"
+    private const val UPDATE_URL = "https://cdn.jsdelivr.net/gh/Joyce-coco/SnapLedger@master/update.json"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
