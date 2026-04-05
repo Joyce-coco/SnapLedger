@@ -41,6 +41,7 @@ class ExpenseRepository @Inject constructor(
     }
 
     // Ledger
+    suspend fun getAllLedgersOnce() = ledgerDao.getAllLedgersOnce()
     suspend fun insertLedger(ledger: Ledger) = ledgerDao.insert(ledger)
     suspend fun updateLedger(ledger: Ledger) = ledgerDao.update(ledger)
     suspend fun deleteLedger(ledger: Ledger) = ledgerDao.delete(ledger)

@@ -23,6 +23,11 @@ fun categoryIcon(iconName: String): ImageVector {
         "Flight" -> Icons.Default.Flight
         "Pets" -> Icons.Default.Pets
         "Checkroom" -> Icons.Default.Checkroom
+        "FlightTakeoff" -> Icons.Default.Flight
+        "Group" -> Icons.Default.Group
+        "MenuBook" -> Icons.Default.MenuBook
+        "Apartment" -> Icons.Default.Apartment
+        "Work" -> Icons.Default.Work
         else -> Icons.Default.Category
     }
 }
@@ -46,4 +51,9 @@ val availableIcons = listOf(
     "Pets" to "宠物",
     "Checkroom" to "服饰",
     "MoreHoriz" to "其他",
+    "FlightTakeoff" to "旅游",
+    "Group" to "社交",
+    "MenuBook" to "学习",
+    "Apartment" to "房租",
+    "Work" to "副业",
 )

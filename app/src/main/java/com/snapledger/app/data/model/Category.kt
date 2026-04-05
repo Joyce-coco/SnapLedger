@@ -24,5 +24,12 @@ object DefaultCategories {
         Category(name = "通讯", icon = "PhoneAndroid", color = 0xFFFBBF24, isDefault = true),
         Category(name = "日用", icon = "Storefront", color = 0xFF818CF8, isDefault = true),
         Category(name = "其他", icon = "MoreHoriz", color = 0xFF9CA3AF, isDefault = true),
+        Category(name = "宠物", icon = "Pets", color = 0xFFFFB347, isDefault = true),
+        Category(name = "恋爱", icon = "Favorite", color = 0xFFFF69B4, isDefault = true),
+        Category(name = "旅游", icon = "FlightTakeoff", color = 0xFF00CED1, isDefault = true),
+        Category(name = "社交", icon = "Group", color = 0xFFDDA0DD, isDefault = true),
+        Category(name = "学习", icon = "MenuBook", color = 0xFF87CEEB, isDefault = true),
+        Category(name = "房租", icon = "Apartment", color = 0xFFCD853F, isDefault = true),
+        Category(name = "副业", icon = "Work", color = 0xFF20B2AA, isDefault = true),
     )
 }

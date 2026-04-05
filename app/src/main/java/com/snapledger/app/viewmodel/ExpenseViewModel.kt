@@ -13,6 +13,8 @@ import com.snapledger.app.ocr.OcrProcessor
 import com.snapledger.app.ocr.ParsedTransaction
 import com.snapledger.app.ocr.ReceiptParser
 import java.util.Calendar
+import android.app.Application
+import com.snapledger.app.`import`.AutoImporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -33,7 +35,8 @@ data class OcrState(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ExpenseViewModel @Inject constructor(
-    private val repository: ExpenseRepository
+    private val repository: ExpenseRepository,
+    private val app: Application
 ) : ViewModel() {
 
     // 多账本
@@ -62,6 +65,11 @@ class ExpenseViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             repository.initDefaultCategories()
+            // 自动导入3月账单（仅首次）
+            val ledgerId = AutoImporter.importIfNeeded(app, repository)
+            if (ledgerId != null) {
+                _currentLedgerId.value = ledgerId
+            }
         }
     }
 
@@ -85,6 +93,7 @@ class ExpenseViewModel @Inject constructor(
         categoryId: Long,
         categoryName: String,
         note: String,
+        subCategory: String = "",
         imagePath: String? = null,
         timestamp: Long = System.currentTimeMillis(),
         type: Int = 0
@@ -95,6 +104,7 @@ class ExpenseViewModel @Inject constructor(
                     amount = amount,
                     categoryId = categoryId,
                     categoryName = categoryName,
+                    subCategory = subCategory,
                     note = note,
                     imagePath = imagePath,
                     timestamp = timestamp,

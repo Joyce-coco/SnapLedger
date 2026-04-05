@@ -298,6 +298,7 @@ object ImportHelper {
                 }
 
                 val categoryName = cols.getOrNull(colMap.categoryCol)?.trim() ?: "其他"
+                val subCategory = cols.getOrNull(colMap.subCategoryCol)?.trim() ?: ""
                 val note = cols.getOrNull(colMap.noteCol)?.trim() ?: ""
                 val dateStr = cols.getOrNull(colMap.dateCol)?.trim() ?: ""
                 val typeStr = cols.getOrNull(colMap.typeCol)?.trim() ?: ""
@@ -311,6 +312,7 @@ object ImportHelper {
                         amount = absAmount,
                         categoryId = 0,
                         categoryName = categoryName.ifBlank { "其他" },
+                        subCategory = subCategory,
                         note = note,
                         timestamp = timestamp,
                         ledgerId = ledgerId,
@@ -380,6 +382,7 @@ object ImportHelper {
                         }
 
                         val categoryName = cols.getOrNull(colMap.categoryCol)?.trim() ?: "其他"
+                        val subCategory = cols.getOrNull(colMap.subCategoryCol)?.trim() ?: ""
                         val note = cols.getOrNull(colMap.noteCol)?.trim() ?: ""
                         val dateStr = cols.getOrNull(colMap.dateCol)?.trim() ?: ""
                         val typeStr = cols.getOrNull(colMap.typeCol)?.trim() ?: ""
@@ -393,6 +396,7 @@ object ImportHelper {
                                 amount = absAmount,
                                 categoryId = 0,
                                 categoryName = categoryName.ifBlank { "其他" },
+                                subCategory = subCategory,
                                 note = note,
                                 timestamp = timestamp,
                                 ledgerId = ledgerId,
@@ -529,24 +533,26 @@ object ImportHelper {
     private data class ColumnMap(
         val amountCol: Int = -1,
         val categoryCol: Int = -1,
+        val subCategoryCol: Int = -1,
         val noteCol: Int = -1,
         val dateCol: Int = -1,
         val typeCol: Int = -1
     )
 
     private fun parseCsvHeader(headers: List<String>): ColumnMap {
-        var amount = -1; var category = -1; var note = -1; var date = -1; var type = -1
+        var amount = -1; var category = -1; var subCategory = -1; var note = -1; var date = -1; var type = -1
         headers.forEachIndexed { i, h ->
             val cell = h.trim().lowercase()
             when {
                 cell in listOf("金额", "amount", "money", "数额") -> amount = i
-                cell in listOf("分类", "category", "类别", "类型") -> category = i
+                cell in listOf("分类", "category", "类别", "类型", "一级分类") -> category = i
+                cell in listOf("二级分类", "subcategory", "子分类", "标签") -> subCategory = i
                 cell in listOf("备注", "note", "说明", "描述", "摘要") -> note = i
                 cell in listOf("日期", "date", "时间", "time", "交易时间") -> date = i
                 cell in listOf("收支", "type", "收支类型", "方向") -> type = i
             }
         }
-        return ColumnMap(amount, category, note, date, type)
+        return ColumnMap(amount, category, subCategory, note, date, type)
     }
 
     private fun parseDate(dateStr: String): Long? {

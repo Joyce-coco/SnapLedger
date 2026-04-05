@@ -11,7 +11,7 @@ import com.snapledger.app.data.model.Ledger
 
 @Database(
     entities = [Expense::class, Category::class, Ledger::class, Budget::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -21,6 +21,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun budgetDao(): BudgetDao
 
     companion object {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN subCategory TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // 账本表

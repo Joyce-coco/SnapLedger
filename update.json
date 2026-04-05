@@ -1,7 +1,7 @@
 {
-  "version_code": 6,
-  "version_name": "1.5",
+  "version_code": 7,
+  "version_name": "1.6",
   "download_url": "https://github.com/Joyce-coco/SnapLedger/releases/latest/download/SnapLedger.apk",
-  "changelog": "统计页新增扇形图分类占比+自定义时间范围查询",
+  "changelog": "新增二级分类标签 + 3月账单自动导入 + 7个新分类（宠物/恋爱/旅游/社交/学习/房租/副业）",
   "force_update": false
 }

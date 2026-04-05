@@ -422,7 +422,23 @@ private fun SwipeToDeleteExpenseItem(
                 Spacer(Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(expense.categoryName, fontWeight = FontWeight.Medium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(expense.categoryName, fontWeight = FontWeight.Medium)
+                        if (expense.subCategory.isNotBlank()) {
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                expense.subCategory,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = iconColor,
+                                modifier = Modifier
+                                    .background(
+                                        iconColor.copy(alpha = 0.15f),
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                     if (expense.note.isNotBlank()) {
                         Text(
                             expense.note,

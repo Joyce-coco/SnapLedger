@@ -9,6 +9,9 @@ interface LedgerDao {
     @Query("SELECT * FROM ledgers ORDER BY createdAt DESC")
     fun getAllLedgers(): Flow<List<Ledger>>
 
+    @Query("SELECT * FROM ledgers")
+    suspend fun getAllLedgersOnce(): List<Ledger>
+
     @Insert
     suspend fun insert(ledger: Ledger): Long
 

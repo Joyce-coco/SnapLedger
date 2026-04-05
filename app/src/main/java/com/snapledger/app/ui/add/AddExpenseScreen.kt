@@ -48,6 +48,7 @@ fun AddExpenseScreen(
     var amount by remember { mutableStateOf(prefilledAmount ?: "") }
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
     var note by remember { mutableStateOf(if (isEditMode) editNote else "") }
+    var subCategory by remember { mutableStateOf("") }
     var isIncome by remember { mutableStateOf(prefilledIsIncome) }
 
     // 时间选择状态
@@ -257,6 +258,17 @@ fun AddExpenseScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // 二级分类
+            OutlinedTextField(
+                value = subCategory,
+                onValueChange = { subCategory = it },
+                label = { Text("二级分类（可选）") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(Modifier.height(8.dp))
+
             // 备注
             OutlinedTextField(
                 value = note,
@@ -280,6 +292,7 @@ fun AddExpenseScreen(
                                     amount = amountValue,
                                     categoryId = selectedCategory!!.id,
                                     categoryName = selectedCategory!!.name,
+                                    subCategory = subCategory,
                                     note = note,
                                     timestamp = selectedTimestamp,
                                     ledgerId = viewModel.currentLedgerId.value,
@@ -292,6 +305,7 @@ fun AddExpenseScreen(
                                 categoryId = selectedCategory!!.id,
                                 categoryName = selectedCategory!!.name,
                                 note = note,
+                                subCategory = subCategory,
                                 timestamp = selectedTimestamp,
                                 type = if (isIncome) 1 else 0
                             )
